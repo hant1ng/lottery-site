@@ -22,6 +22,7 @@
 仅依赖 Python 标准库。
 """
 import json
+import math
 import os
 import re
 import sys
@@ -198,10 +199,133 @@ def api_draw(raw, g):
     return out
 
 
+def number_pool(code, part):
+    """返回 (最小号码, 最大号码) — part: front/back"""
+    g = GAMES[code]
+    if part == "front":
+        lo = 0 if code == "p5" else 1
+        return lo, g["front"][1]
+    return 1, g["back"][1]
+
+
+def chi2_pvalue(chi2, df):
+    """卡方分布右尾概率的 Wilson-Hilferty 正态近似(无需 scipy)"""
+    if df <= 0:
+        return None
+    z = (chi2 / df) ** (1.0 / 3) - (1 - 2.0 / (9 * df))
+    z /= math.sqrt(2.0 / (9 * df))
+    return 0.5 * math.erfc(z / math.sqrt(2))
+
+
+def compute_stats(code, draws):
+    """全量历史统计: 频率/遗漏/和值/奇偶/卡方检验 — 让只读文本的AI也能拿到分析结果"""
+    g = GAMES[code]
+    fc, bc = g["front"][0], g["back"][0]
+    n = len(draws)
+    parts = {"front": fc}
+    if bc:
+        parts["back"] = bc
+
+    out = {"total_draws": n}
+    for part, cnt in parts.items():
+        lo, hi = number_pool(code, part)
+        counts = {v: 0 for v in range(lo, hi + 1)}
+        last_seen = {}                 # 号码 -> 期索引
+        max_miss = {v: 0 for v in range(lo, hi + 1)}
+        prev = {v: None for v in range(lo, hi + 1)}
+        for idx, x in enumerate(draws):
+            nums = x["n"][:fc] if part == "front" else x["n"][fc:]
+            for v in nums:
+                counts[v] += 1
+                if prev[v] is not None:
+                    max_miss[v] = max(max_miss[v], idx - prev[v] - 1)
+                prev[v] = idx
+                last_seen[v] = idx
+        rows = []
+        for v in range(lo, hi + 1):
+            cur_miss = (n - 1 - last_seen[v]) if v in last_seen else n
+            if prev[v] is not None:
+                max_miss[v] = max(max_miss[v], cur_miss)
+            rows.append({
+                "number": v, "count": counts[v],
+                "percent": round(counts[v] * 100.0 / (n * cnt), 2),
+                "current_miss": cur_miss,          # 当前遗漏期数
+                "max_miss": max_miss[v],           # 历史最大遗漏
+            })
+        # 卡方检验: 实际频率 vs 均匀分布期望
+        k = hi - lo + 1
+        expected = n * cnt / k
+        chi2 = sum((r["count"] - expected) ** 2 / expected for r in rows)
+        out[part] = {
+            "numbers": sorted(rows, key=lambda r: -r["count"]),
+            "expected_percent": round(100.0 / k, 2),
+            "chi2_test": {"chi2": round(chi2, 2), "df": k - 1,
+                          "p_value_approx": round(chi2_pvalue(chi2, k - 1), 4),
+                          "note": "p>0.05 表示与均匀分布无显著差异(随机性正常)"},
+        }
+    # 和值/奇偶(前区)
+    sums = [sum(x["n"][:fc]) for x in draws]
+    odds = [sum(1 for v in x["n"][:fc] if v % 2) for x in draws]
+    out["sum"] = {"min": min(sums), "max": max(sums),
+                  "mean": round(sum(sums) / n, 1),
+                  "current": sums[-1], "current_date": draws[-1]["d"]}
+    out["odd_even"] = {"avg_odd_in_front": round(sum(odds) / n, 2)}
+    return out
+
+
+def write_history_files(code, draws):
+    """按年份切片写 api/history/<code>/<year>.json — 单年约20KB, AI可直接放进上下文"""
+    g = GAMES[code]
+    years = {}
+    for x in draws:
+        years.setdefault(x["d"][:4], []).append(api_draw(x, g))
+    outdir = os.path.join(API_DIR, "history", code)
+    os.makedirs(outdir, exist_ok=True)
+    # 先清掉旧年份文件(数据修正时可能变化)
+    for fn in os.listdir(outdir):
+        os.remove(os.path.join(outdir, fn))
+    for y, lst in sorted(years.items()):
+        with open(os.path.join(outdir, "%s.json" % y), "w", encoding="utf-8") as f:
+            json.dump({"game": g["name"], "year": y, "count": len(lst),
+                       "draws": lst}, f, ensure_ascii=False, separators=(",", ":"))
+    return sorted(years)
+
+
+def write_compact_files(code, draws):
+    """写 api/compact/<code>.txt — 全量原始号码, 一期一行纯文本, 供 AI 一次性读取运算。
+
+    格式(空格分隔): 期号 日期 红球/前区号码... [蓝球/后区号码]
+    例: 26105 2026-09-10 1 7 12 19 25 33 8
+    """
+    g = GAMES[code]
+    outdir = os.path.join(API_DIR, "compact")
+    os.makedirs(outdir, exist_ok=True)
+    fc, bc = g["front"][0], g["back"][0]
+    lines = []
+    for x in draws:
+        nums = x["n"]
+        front = " ".join(str(v) for v in nums[:fc])
+        back = " ".join(str(v) for v in nums[fc:]) if bc else ""
+        lines.append("%s %s %s%s" % (x["i"], x["d"], front, (" " + back) if back else ""))
+    header = (
+        "# %s 全量开奖数据(时间升序, 一期一行)\n"
+        "# 期号 日期 %s%s\n"
+        "# 共%d期 %s~%s 更新于%s\n"
+        % (g["name"],
+           "前区%d个(%d-%d)" % (fc, 0 if code == "p5" else 1, g["front"][1]),
+           (" 后区%d个(%d-%d)" % (bc, 1, g["back"][1])) if bc else " 单区",
+           len(draws), draws[0]["d"], draws[-1]["d"], time.strftime("%Y-%m-%d %H:%M"))
+    )
+    path = os.path.join(outdir, "%s.txt" % code)
+    with open(path, "w", encoding="utf-8") as f:
+        f.write(header + "\n".join(lines) + "\n")
+    return path
+
+
 def write_api_files():
     """根据 data/*.json 生成 api/ 下的轻量 JSON 端点(供 AI/程序直接 GET)"""
     os.makedirs(API_DIR, exist_ok=True)
-    latest, recent = {}, {}
+    latest, recent, stats, history_index = {}, {}, {}, {}
     for code, g in GAMES.items():
         data = load_data(code)
         if not data or not data.get("draws"):
@@ -225,10 +349,22 @@ def write_api_files():
                        "total_draws": len(draws),
                        "full_history_url": "data/%s_all.json" % code},
                       f, ensure_ascii=False, separators=(",", ":"))
+        # 预计算统计端点 + 按年切片历史
+        stats[code] = {"name": g["name"], "rule": latest[code]["rule"],
+                       **compute_stats(code, draws)}
+        years = write_history_files(code, draws)
+        history_index[code] = {"name": g["name"], "years": years,
+                               "url_pattern": "api/history/%s/<year>.json" % code}
+        # 全量紧凑文本 — AI 可一次性读取全部号码自行运算
+        compact_path = write_compact_files(code, draws)
+        size_kb = os.path.getsize(compact_path) / 1024
+        print("  compact: api/compact/%s.txt (%d期, %.0f KB)" % (code, len(draws), size_kb))
     stamp = time.strftime("%Y-%m-%d %H:%M")
     header = {
         "_readme": "中国彩票开奖数据API。latest=每彩种最新一期; recent=每彩种最新10期(新→旧)。"
                    "单彩种30期: api/ssq.json, api/dlt.json, api/p5.json; "
+                   "预计算统计(频率/遗漏/卡方): api/stats.json; "
+                   "按年切片历史: api/history.json; "
                    "全部历史: data/{ssq,dlt,p5}_all.json (字段: i=期号,d=日期,n=号码,pool=奖池,sales=销售额,p1c/p1a/p2c/p2a=奖级注数与奖金)。",
         "_updated": stamp,
     }
@@ -236,7 +372,11 @@ def write_api_files():
         json.dump({**header, "games": latest}, f, ensure_ascii=False, indent=1)
     with open(os.path.join(API_DIR, "recent.json"), "w", encoding="utf-8") as f:
         json.dump({**header, "games": recent}, f, ensure_ascii=False, indent=1)
-    print("API 文件已生成 -> api/latest.json, api/recent.json, api/{ssq,dlt,p5}.json (%s)" % stamp)
+    with open(os.path.join(API_DIR, "stats.json"), "w", encoding="utf-8") as f:
+        json.dump({**header, "games": stats}, f, ensure_ascii=False, indent=1)
+    with open(os.path.join(API_DIR, "history.json"), "w", encoding="utf-8") as f:
+        json.dump({**header, "games": history_index}, f, ensure_ascii=False, indent=1)
+    print("API 文件已生成 -> latest/recent/stats/history + api/history/<code>/<year>.json (%s)" % stamp)
 
 
 def next_issue(issue):
