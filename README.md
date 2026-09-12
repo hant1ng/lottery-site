@@ -19,6 +19,45 @@
 
 数据文件在 `data/*.json`，由 `scripts/fetch_data.py` 生成（仅用 Python 标准库）。
 
+## AI / 程序读取接口（静态 JSON API）
+
+部署后（假设域名为 `https://your-domain.com`），AI 助手或任何程序直接 GET 以下 URL 即可，无需密钥、无跨域限制：
+
+| 端点 | 内容 | 大小 |
+|---|---|---|
+| `/api/latest.json` | 三个彩种**最新一期**开奖（含奖池/销售额/奖级），带规则说明 | ~2 KB |
+| `/api/recent.json` | 三个彩种**最新 10 期**（新→旧） | ~12 KB |
+| `/api/ssq.json` | 双色球最新 30 期 | ~7 KB |
+| `/api/dlt.json` | 大乐透最新 30 期 | ~7 KB |
+| `/api/p5.json` | 排列五最新 30 期 | ~4 KB |
+| `/data/ssq_all.json` 等 | 全部历史（数千期） | ~1 MB |
+
+`latest.json` 返回示例（AI 可直接理解，字段自解释）：
+
+```json
+{
+  "_readme": "中国彩票开奖数据API。latest=每彩种最新一期; ...",
+  "_updated": "2026-09-12 18:55",
+  "games": {
+    "ssq": {
+      "name": "双色球",
+      "rule": "6个号码(1-33) + 1个号码(1-16)",
+      "latest": {
+        "issue": "26105", "date": "2026-09-10",
+        "numbers": [2,4,13,14,15,30,8],
+        "front_numbers": [2,4,13,14,15,30], "back_numbers": [8],
+        "pool": "833007469", "sales": "333874688",
+        "p1c": "1", "p1a": "10000000", "p2c": "100", "p2a": "148168"
+      }
+    }
+  }
+}
+```
+
+**给 AI 的提示词写法**：让 AI 抓取 `https://your-domain.com/api/latest.json` 并按需解析即可；查询历史走势再让它读 `/data/{彩种}_all.json`。
+
+这些文件由 `fetch_data.py` 在每次更新数据时自动重新生成，随每日自动更新一起部署，无需额外维护。
+
 ## 手动更新数据
 
 ```bash

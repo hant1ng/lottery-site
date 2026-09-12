@@ -30,6 +30,7 @@ import urllib.request
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DATA_DIR = os.path.join(BASE_DIR, "data")
+API_DIR = os.path.join(BASE_DIR, "api")
 UA = ("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
       "(KHTML, like Gecko) Chrome/124.0 Safari/537.36")
 
@@ -176,6 +177,68 @@ def validate(code, draws):
         raise ValueError("%s 有 %d 条数据校验失败" % (g["name"], bad))
 
 
+# ---------------------------------------------------------------- AI 友好 API 文件
+def api_draw(raw, g):
+    """把内部精简格式转成 AI 易读的完整字段"""
+    fc = g["front"][0]
+    nums = raw["n"]
+    out = {
+        "issue": raw["i"],                      # 期号, 如 26105
+        "date": raw["d"],                       # 开奖日期
+        "numbers": nums,                        # 全部号码(升序排列)
+    }
+    if g["back"][0]:                           # 有后区/蓝球的彩种拆分展示
+        out["front_numbers"] = nums[:fc]        # 前区/红球
+        out["back_numbers"] = nums[fc:]         # 后区/蓝球
+    for k, label in [("pool", "奖池金额(元)"), ("sales", "销售额(元)"),
+                     ("p1c", "一等奖注数"), ("p1a", "一等奖单注奖金(元)"),
+                     ("p2c", "二等奖注数"), ("p2a", "二等奖单注奖金(元)")]:
+        if raw.get(k):
+            out[k] = raw[k]
+    return out
+
+
+def write_api_files():
+    """根据 data/*.json 生成 api/ 下的轻量 JSON 端点(供 AI/程序直接 GET)"""
+    os.makedirs(API_DIR, exist_ok=True)
+    latest, recent = {}, {}
+    for code, g in GAMES.items():
+        data = load_data(code)
+        if not data or not data.get("draws"):
+            continue
+        draws = data["draws"]
+        latest[code] = {
+            "name": g["name"],
+            "rule": ("%d个号码(%d-%d)" % (g["front"][0], 1 if code != "p5" else 0, g["front"][1])
+                    + ((" + %d个号码(%d-%d)" % (g["back"][0], 1, g["back"][1])) if g["back"][0] else "")),
+            "latest": api_draw(draws[-1], g),
+        }
+        recent[code] = {
+            "name": g["name"],
+            "rule": latest[code]["rule"],
+            "recent": [api_draw(x, g) for x in draws[-10:]],  # 最新10期, 新→旧在前
+        }
+        # 每个彩种单独的端点: api/<code>.json = 最新30期
+        with open(os.path.join(API_DIR, "%s.json" % code), "w", encoding="utf-8") as f:
+            json.dump({**recent[code],
+                       "recent": [api_draw(x, g) for x in draws[-30:][::-1]],
+                       "total_draws": len(draws),
+                       "full_history_url": "data/%s_all.json" % code},
+                      f, ensure_ascii=False, separators=(",", ":"))
+    stamp = time.strftime("%Y-%m-%d %H:%M")
+    header = {
+        "_readme": "中国彩票开奖数据API。latest=每彩种最新一期; recent=每彩种最新10期(新→旧)。"
+                   "单彩种30期: api/ssq.json, api/dlt.json, api/p5.json; "
+                   "全部历史: data/{ssq,dlt,p5}_all.json (字段: i=期号,d=日期,n=号码,pool=奖池,sales=销售额,p1c/p1a/p2c/p2a=奖级注数与奖金)。",
+        "_updated": stamp,
+    }
+    with open(os.path.join(API_DIR, "latest.json"), "w", encoding="utf-8") as f:
+        json.dump({**header, "games": latest}, f, ensure_ascii=False, indent=1)
+    with open(os.path.join(API_DIR, "recent.json"), "w", encoding="utf-8") as f:
+        json.dump({**header, "games": recent}, f, ensure_ascii=False, indent=1)
+    print("API 文件已生成 -> api/latest.json, api/recent.json, api/{ssq,dlt,p5}.json (%s)" % stamp)
+
+
 def next_issue(issue):
     """03001 -> 03002, 26105 -> 26106"""
     return "%05d" % (int(issue) + 1)
@@ -240,6 +303,11 @@ def main():
             print("%s 抓取失败: %s" % (GAMES[code]["name"], e))
             if not incremental:
                 raise
+    # 无论全量/增量, 只要任一彩种数据文件存在就刷新 API 端点
+    try:
+        write_api_files()
+    except Exception as e:
+        print("API 文件生成失败: %s" % e)
 
 
 if __name__ == "__main__":
