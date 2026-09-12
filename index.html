@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>彩票开奖数据 - 双色球 / 大乐透 / 排列五</title>
+<meta name="description" content="双色球、大乐透、排列五历史开奖数据查询：开奖记录、走势图、号码频率统计与遗漏分析">
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+<header class="site-header">
+  <div class="wrap">
+    <h1>🎱 彩票开奖数据</h1>
+    <nav class="tabs" id="tabs">
+      <button class="tab active" data-game="ssq">双色球</button>
+      <button class="tab" data-game="dlt">大乐透</button>
+      <button class="tab" data-game="p5">排列五</button>
+    </nav>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <!-- 最新开奖 -->
+  <section class="card" id="latest-card">
+    <div class="card-head">
+      <h2 id="latest-title">最新开奖</h2>
+      <span class="meta" id="latest-date"></span>
+    </div>
+    <div class="latest-balls" id="latest-balls"></div>
+    <div class="latest-info" id="latest-info"></div>
+  </section>
+
+  <!-- 开奖记录 -->
+  <section class="card">
+    <div class="card-head">
+      <h2>开奖记录</h2>
+      <div class="query">
+        <input type="text" id="search-input" placeholder="输入期号，如 26105" maxlength="7">
+        <button id="search-btn">查询</button>
+        <span class="meta" id="search-hint"></span>
+      </div>
+    </div>
+    <div class="table-scroll">
+      <table class="draw-table">
+        <thead>
+          <tr>
+            <th>期号</th><th>开奖日期</th><th>开奖号码</th>
+            <th>奖池(元)</th><th>销售额(元)</th><th>一等奖</th>
+          </tr>
+        </thead>
+        <tbody id="draw-tbody"></tbody>
+      </table>
+    </div>
+    <div class="pager">
+      <button id="prev-btn">上一页</button>
+      <span id="page-info"></span>
+      <button id="next-btn">下一页</button>
+    </div>
+  </section>
+
+  <!-- 走势图 -->
+  <section class="card">
+    <div class="card-head">
+      <h2>走势图</h2>
+      <div class="seg" id="trend-range">
+        <button class="seg-btn active" data-n="30">近30期</button>
+        <button class="seg-btn" data-n="50">近50期</button>
+        <button class="seg-btn" data-n="100">近100期</button>
+      </div>
+    </div>
+    <div class="chart-scroll">
+      <svg id="trend-front" xmlns="http://www.w3.org/2000/svg"></svg>
+    </div>
+    <div class="chart-scroll" id="trend-back-wrap">
+      <svg id="trend-back" xmlns="http://www.w3.org/2000/svg"></svg>
+    </div>
+    <p class="chart-legend" id="trend-legend"></p>
+  </section>
+
+  <!-- 号码统计 -->
+  <section class="card">
+    <div class="card-head">
+      <h2>号码统计（全量历史）</h2>
+      <span class="meta" id="stats-meta"></span>
+    </div>
+    <h3 class="sub-title" id="freq-front-title">红球出现频率</h3>
+    <div class="chart-scroll"><svg id="freq-front" xmlns="http://www.w3.org/2000/svg"></svg></div>
+    <h3 class="sub-title" id="freq-back-title" style="display:none">蓝球出现频率</h3>
+    <div class="chart-scroll" id="freq-back-wrap" style="display:none">
+      <svg id="freq-back" xmlns="http://www.w3.org/2000/svg"></svg>
+    </div>
+    <div class="stats-grid" id="miss-grid"></div>
+  </section>
+
+  <footer>
+    <p>数据来源：中国福利彩票官网信息（经 500 彩票网整理）、中国体育彩票官网，仅供参考，请以官方公告为准。</p>
+    <p id="updated-info"></p>
+  </footer>
+</main>
+
+<script src="assets/app.js"></script>
+</body>
+</html>
