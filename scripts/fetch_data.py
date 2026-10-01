@@ -255,7 +255,38 @@ def fetch_p5_pages(pages):
             draws.sort(key=lambda x: x["i"])
             return draws
 
-    raise RuntimeError("排列五官方接口抓取失败: %s" % last_error)
+    # 体彩接口在 GitHub Runner 上可能被 WAF 返回 567，改走500开奖 XML 镜像。
+    try:
+        from xml.etree import ElementTree as ET
+        url = "https://datachart.500.com/static/info/kaijiang/xml/plw/list.xml"
+        raw = curl_get(url, "https://datachart.500.com/plw/history/", timeout=25)
+        root = ET.fromstring(raw)
+        fallback = []
+        for row in root.findall("row"):
+            issue = str(row.get("expect") or "").strip()
+            date = str(row.get("opentime") or "")[:10]
+            parts = str(row.get("opencode") or "").replace(",", " ").split()
+            try:
+                nums = [int(x) for x in parts]
+            except ValueError:
+                continue
+            if not issue or len(nums) != 5 or not all(0 <= x <= 9 for x in nums):
+                continue
+            fallback.append({
+                "i": issue, "d": date, "n": nums,
+                "pool": "", "sales": "", "p1c": "", "p1a": "",
+                "p2c": "", "p2a": "",
+            })
+            if len(fallback) >= max(100, pages * 100):
+                break
+        if not fallback:
+            raise RuntimeError("500排列五XML未解析到数据")
+        fallback.sort(key=lambda x: x["i"])
+        print("  排列五 500 XML备用源已抓取 %d 期" % len(fallback))
+        return fallback
+    except Exception as fallback_error:
+        raise RuntimeError("排列五官方接口失败(%s)，500备用源也失败(%s)"
+                           % (last_error, fallback_error))
 
 
 # ---------------------------------------------------------------- 数据文件读写
