@@ -619,10 +619,10 @@ def incremental_fetch(code):
         new = fetch_p5_pages(pages=3)
     elif code == "ssq":
         try:
-            new = fetch_ssq_cwl()
-        except Exception as e:
-            print("  福彩官网抓取失败，回退500数据源: %s" % e)
             new = fetch_500(code, int(next_issue(last)), 99999)
+        except Exception as e:
+            print("  500双色球数据源失败，回退福彩官网: %s" % e)
+            new = fetch_ssq_cwl()
     else:
         new = fetch_500(code, int(next_issue(last)), 99999)
 
