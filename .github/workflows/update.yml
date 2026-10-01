@@ -8,6 +8,7 @@ on:
   push:
     paths:
       - ".github/workflows/update.yml"
+      - "scripts/fetch_data.py"
 
 permissions:
   contents: write
