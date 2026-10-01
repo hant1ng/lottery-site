@@ -203,7 +203,57 @@ def fetch_500(code, start, end):
 
 # ---------------------------------------------------------------- 体彩官网(排列五)
 def fetch_p5_pages(pages):
-    """抓取体彩官网排列五。优先350133，遇WAF时使用移动端curl；兼容37旧标识。"""
+    """抓取排列五。优先使用可从GitHub Runner访问的500历史页，体彩官网作备用。"""
+    # 500 的排列五 HTML 与双色球/大乐透位于同一可达域名。
+    # 每次取当前年份即可覆盖自动更新期间可能漏掉的期数。
+    try:
+        yy = int(time.strftime("%y"))
+        start_issue = yy * 1000 + 1
+        end_issue = yy * 1000 + 999
+        url = ("https://datachart.500.com/plw/history/inc/history.php"
+               "?start=%d&end=%d" % (start_issue, end_issue))
+        try:
+            html = http_get(url, timeout=35)
+        except Exception as e:
+            print("  排列五500 urllib失败，改用curl: %s" % e)
+            html = curl_get(url, "https://datachart.500.com/plw/history/", timeout=30)
+
+        html = re.sub(r"<!--.*?-->", "", html, flags=re.S).replace("\n", "")
+        rows = re.findall(r"<tr[^>]*>(.*?)</tr>", html, flags=re.S | re.I)
+        mirror = []
+        for row in rows:
+            tds = re.findall(r"<td[^>]*>(.*?)</td>", row, flags=re.S | re.I)
+            cells = []
+            for td in tds:
+                cell = re.sub(r"<[^>]+>", "", td)
+                cell = cell.replace("&nbsp;", " ").strip()
+                cells.append(cell)
+            if len(cells) < 5:
+                continue
+            issue = re.sub(r"\D", "", cells[0])
+            nums_text = re.sub(r"\D", "", cells[1])
+            if len(issue) != 5 or len(nums_text) != 5:
+                continue
+            date = next((c[:10] for c in reversed(cells)
+                         if re.match(r"^\d{4}-\d{2}-\d{2}", c)), "")
+            if not date:
+                continue
+            nums = [int(x) for x in nums_text]
+            sales = re.sub(r"[^0-9.]", "", cells[3]) if len(cells) > 3 else ""
+            mirror.append({
+                "i": issue, "d": date, "n": nums,
+                "pool": "", "sales": sales, "p1c": "", "p1a": "",
+                "p2c": "", "p2a": "",
+            })
+        if mirror:
+            mirror.sort(key=lambda x: x["i"])
+            print("  排列五500 HTML源已抓取 %d 期，最新 %s" %
+                  (len(mirror), mirror[-1]["i"]))
+            return mirror
+        print("  排列五500 HTML源未解析到数据，尝试体彩官网")
+    except Exception as e:
+        print("  排列五500 HTML源失败: %s，尝试体彩官网" % e)
+
     last_error = None
     for game_no in ("350133", "37"):
         draws = []
