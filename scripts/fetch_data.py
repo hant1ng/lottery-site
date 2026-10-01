@@ -27,6 +27,8 @@ import os
 import re
 import sys
 import time
+import tempfile
+import subprocess
 import urllib.request
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -59,12 +61,117 @@ def http_get(url, timeout=60):
     return raw.decode("gb18030", errors="ignore")
 
 
+
+MOBILE_UA = ("Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 "
+             "(KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36")
+
+
+def curl_get(url, referer, timeout=30, cookie_file=None, save_cookies=False):
+    """用系统 curl 请求。GitHub Runner 访问部分彩票源时 urllib 容易被 WAF/SSL 拦截。"""
+    cmd = [
+        "curl", "-fsSLk",
+        "--max-time", str(timeout),
+        "--retry", "2",
+        "--retry-delay", "2",
+        url,
+        "-H", "User-Agent: %s" % MOBILE_UA,
+        "-H", "Accept: application/json,text/plain,*/*",
+        "-H", "Referer: %s" % referer,
+    ]
+    if cookie_file:
+        if save_cookies:
+            cmd.extend(["-c", cookie_file])
+        else:
+            cmd.extend(["-b", cookie_file])
+    p = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                       text=True, timeout=timeout + 15)
+    if p.returncode != 0:
+        raise RuntimeError("curl失败(%d): %s" % (p.returncode, p.stderr.strip()[-300:]))
+    if not p.stdout.strip():
+        raise RuntimeError("curl返回空内容")
+    return p.stdout
+
+
+def normalize_ssq_issue(issue):
+    """福彩官网 2026109 -> 26109，与仓库现有 5 位期号保持一致。"""
+    issue = str(issue).strip()
+    if len(issue) == 7 and issue.startswith("20"):
+        return issue[2:]
+    return issue
+
+
+def fetch_ssq_cwl():
+    """从中国福彩网公开接口抓取双色球最近100期，供增量更新。"""
+    api = ("https://www.cwl.gov.cn/cwl_admin/front/cwlkj/search/kjxx/findDrawNotice"
+           "?name=ssq&issueCount=&issueStart=&issueEnd=&dayStart=&dayEnd="
+           "&pageNo=1&pageSize=100&week=&systemType=PC")
+    landing = "https://www.cwl.gov.cn/ygkj/wqkjgg/ssq/"
+    cookie_path = os.path.join(tempfile.gettempdir(), "lottery_cwl_cookie.txt")
+    try:
+        # 先访问历史开奖页取得站点 Cookie；部分节点直调 API 会被 WAF 拦截。
+        try:
+            curl_get(landing, landing, timeout=20,
+                     cookie_file=cookie_path, save_cookies=True)
+        except Exception as e:
+            print("  福彩Cookie预热失败，继续直连API: %s" % e)
+        raw = curl_get(api, landing, timeout=30,
+                       cookie_file=cookie_path if os.path.exists(cookie_path) else None)
+        data = json.loads(raw, strict=False)
+        if data.get("state") not in (0, None):
+            raise RuntimeError("福彩API异常: %s" % data.get("message"))
+        items = data.get("result") or []
+        if not items:
+            raise RuntimeError("福彩API未返回开奖记录")
+
+        draws = []
+        for it in items:
+            try:
+                reds = [int(x) for x in str(it.get("red") or "").split(",") if x.strip()]
+                blue = [int(str(it.get("blue") or "").strip())]
+                nums = reds + blue
+                if len(reds) != 6 or len(nums) != 7:
+                    continue
+                prizes = it.get("prizegrades") or []
+                p1 = next((p for p in prizes if str(p.get("type")) == "1"), {})
+                p2 = next((p for p in prizes if str(p.get("type")) == "2"), {})
+
+                def clean(v):
+                    return str(v or "").replace(",", "").replace("元", "").strip()
+
+                draws.append({
+                    "i": normalize_ssq_issue(it.get("code")),
+                    "d": str(it.get("date") or "")[:10],
+                    "n": nums,
+                    "pool": clean(it.get("poolmoney")),
+                    "sales": clean(it.get("sales")),
+                    "p1c": clean(p1.get("typenum")),
+                    "p1a": clean(p1.get("typemoney")),
+                    "p2c": clean(p2.get("typenum")),
+                    "p2a": clean(p2.get("typemoney")),
+                })
+            except (TypeError, ValueError):
+                continue
+        if not draws:
+            raise RuntimeError("福彩API数据无法解析")
+        draws.sort(key=lambda x: x["i"])
+        return draws
+    finally:
+        try:
+            os.remove(cookie_path)
+        except OSError:
+            pass
+
+
 # ---------------------------------------------------------------- 500彩票网(双色球/大乐透)
 def fetch_500(code, start, end):
     """按期号区间抓取 500 彩票网历史页, 返回期号升序的 draw 列表"""
     url = ("https://datachart.500.com/%s/history/newinc/history.php"
            "?start=%d&end=%d" % (code, start, end))
-    html = http_get(url)
+    try:
+        html = http_get(url)
+    except Exception as e:
+        print("  urllib访问500数据源失败，改用curl: %s" % e)
+        html = curl_get(url, "https://datachart.500.com/%s/history/" % code, timeout=30)
     html = re.sub(r"<!--.*?-->", "", html, flags=re.S).replace("\n", "")
     rows = re.findall(r'<tr class="t_tr1">(.*?)</tr>', html)
     draws = []
@@ -96,39 +203,59 @@ def fetch_500(code, start, end):
 
 # ---------------------------------------------------------------- 体彩官网(排列五)
 def fetch_p5_pages(pages):
-    """抓取体彩官网排列五 API 指定页数(每页100条), 返回期号升序列表"""
-    draws = []
-    for page in range(1, pages + 1):
-        url = ("https://webapi.sporttery.cn/gateway/lottery/getHistoryPageListV1.qry"
-               "?gameNo=350133&provinceId=0&pageSize=100&isVerify=1&pageNo=%d" % page)
-        try:
-            data = json.loads(http_get(url))
-        except Exception as e:
-            print("  第 %d 页抓取失败: %s" % (page, e))
-            break
-        lst = (data.get("value") or {}).get("list") or []
-        if not lst:
-            break
-        for it in lst:
-            nums = [int(x) for x in it["lotteryDrawResult"].split()]
-            if len(nums) != 5:
-                continue
-            pl = it.get("prizeLevelList") or []
-            p1 = pl[0] if pl else {}
-            draws.append({
-                "i": it["lotteryDrawNum"], "d": it["lotteryDrawTime"], "n": nums,
-                "pool": str(it.get("poolBalanceAfterdraw") or "").replace(",", ""),
-                "sales": str(it.get("totalSaleAmount") or "").replace(",", ""),
-                "p1c": str(p1.get("stakeCount") or "").replace(",", ""),
-                "p1a": str(p1.get("stakeAmountFormat") or "").replace(",", ""),
-                "p2c": "", "p2a": "",
-            })
-        print("  已抓取 %d 页 / %d 期" % (page, len(draws)))
-        if len(lst) < 100:
-            break
-        time.sleep(0.4)
-    draws.sort(key=lambda x: x["i"])
-    return draws
+    """抓取体彩官网排列五。优先350133，遇WAF时使用移动端curl；兼容37旧标识。"""
+    last_error = None
+    for game_no in ("350133", "37"):
+        draws = []
+        failed_first_page = False
+        for page in range(1, pages + 1):
+            url = ("https://webapi.sporttery.cn/gateway/lottery/getHistoryPageListV1.qry"
+                   "?gameNo=%s&provinceId=0&pageSize=100&isVerify=1&pageNo=%d"
+                   % (game_no, page))
+            try:
+                raw = curl_get(url, "https://m.lottery.gov.cn/", timeout=25)
+                data = json.loads(raw, strict=False)
+                lst = (data.get("value") or {}).get("list") or []
+                if page == 1 and not lst:
+                    raise RuntimeError("体彩API返回空列表")
+                if not lst:
+                    break
+            except Exception as e:
+                last_error = e
+                print("  排列五 gameNo=%s 第%d页抓取失败: %s" % (game_no, page, e))
+                if page == 1:
+                    failed_first_page = True
+                break
+
+            for it in lst:
+                try:
+                    nums = [int(x) for x in str(it.get("lotteryDrawResult") or "").split()]
+                except ValueError:
+                    continue
+                if len(nums) != 5:
+                    continue
+                pl = it.get("prizeLevelList") or []
+                p1 = pl[0] if pl else {}
+                draws.append({
+                    "i": str(it.get("lotteryDrawNum") or ""),
+                    "d": str(it.get("lotteryDrawTime") or "")[:10],
+                    "n": nums,
+                    "pool": str(it.get("poolBalanceAfterdraw") or "").replace(",", ""),
+                    "sales": str(it.get("totalSaleAmount") or it.get("drawMoney") or "").replace(",", ""),
+                    "p1c": str(p1.get("stakeCount") or p1.get("awardLevelNum") or "").replace(",", ""),
+                    "p1a": str(p1.get("stakeAmountFormat") or p1.get("awardMoney") or "").replace(",", ""),
+                    "p2c": "", "p2a": "",
+                })
+            print("  排列五 gameNo=%s 已抓取 %d 页 / %d 期" % (game_no, page, len(draws)))
+            if len(lst) < 100:
+                break
+            time.sleep(0.8)
+
+        if draws and not failed_first_page:
+            draws.sort(key=lambda x: x["i"])
+            return draws
+
+    raise RuntimeError("排列五官方接口抓取失败: %s" % last_error)
 
 
 # ---------------------------------------------------------------- 数据文件读写
@@ -409,6 +536,12 @@ def incremental_fetch(code):
 
     if code == "p5":
         new = fetch_p5_pages(pages=3)
+    elif code == "ssq":
+        try:
+            new = fetch_ssq_cwl()
+        except Exception as e:
+            print("  福彩官网抓取失败，回退500数据源: %s" % e)
+            new = fetch_500(code, int(next_issue(last)), 99999)
     else:
         new = fetch_500(code, int(next_issue(last)), 99999)
 
