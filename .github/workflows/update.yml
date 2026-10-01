@@ -1,0 +1,49 @@
+name: Update lottery data
+
+on:
+  schedule:
+    - cron: "0 14 * * *"
+    - cron: "30 15 * * *"
+  workflow_dispatch:
+  push:
+    paths:
+      - ".github/workflows/update.yml"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: lottery-data-update
+  cancel-in-progress: false
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Fetch latest lottery data
+        run: python scripts/fetch_data.py --incremental
+
+      - name: Commit changes when new draws exist
+        shell: bash
+        run: |
+          if git diff --quiet -- data; then
+            echo "No new lottery draws."
+            git restore -- api || true
+            exit 0
+          fi
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data api
+          git commit -m "chore: update lottery data"
+          git push
