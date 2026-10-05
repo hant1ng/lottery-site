@@ -1,6 +1,6 @@
 {
  "_readme": "中国彩票开奖数据API。latest=每彩种最新一期; recent=每彩种最新10期(新→旧)。单彩种30期: api/ssq.json, api/dlt.json, api/p5.json; 预计算统计(频率/遗漏/卡方): api/stats.json; 按年切片历史: api/history.json; 全部历史: data/{ssq,dlt,p5}_all.json (字段: i=期号,d=日期,n=号码,pool=奖池,sales=销售额,p1c/p1a/p2c/p2a=奖级注数与奖金)。",
- "_updated": "2026-10-01 03:21",
+ "_updated": "2026-10-05 21:20",
  "games": {
   "ssq": {
    "name": "双色球",
@@ -385,83 +385,90 @@
   "dlt": {
    "name": "大乐透",
    "rule": "5个号码(1-35) + 2个号码(1-12)",
-   "total_draws": 2930,
+   "total_draws": 2931,
    "front": {
     "numbers": [
      {
       "number": 29,
       "count": 501,
       "percent": 3.42,
-      "current_miss": 1,
+      "current_miss": 2,
       "max_miss": 37
      },
      {
       "number": 33,
       "count": 487,
       "percent": 3.32,
-      "current_miss": 7,
+      "current_miss": 8,
       "max_miss": 33
      },
      {
       "number": 35,
       "count": 482,
       "percent": 3.29,
-      "current_miss": 2,
+      "current_miss": 3,
       "max_miss": 43
      },
      {
       "number": 30,
       "count": 466,
       "percent": 3.18,
-      "current_miss": 7,
+      "current_miss": 8,
       "max_miss": 37
      },
      {
       "number": 32,
       "count": 466,
       "percent": 3.18,
-      "current_miss": 9,
+      "current_miss": 10,
       "max_miss": 50
      },
      {
       "number": 22,
       "count": 457,
       "percent": 3.12,
-      "current_miss": 0,
+      "current_miss": 1,
       "max_miss": 31
      },
      {
       "number": 34,
       "count": 446,
       "percent": 3.04,
-      "current_miss": 3,
+      "current_miss": 4,
       "max_miss": 63
      },
      {
       "number": 3,
       "count": 434,
       "percent": 2.96,
-      "current_miss": 0,
+      "current_miss": 1,
       "max_miss": 41
      },
      {
       "number": 7,
       "count": 434,
       "percent": 2.96,
-      "current_miss": 4,
+      "current_miss": 5,
       "max_miss": 31
      },
      {
       "number": 1,
       "count": 431,
       "percent": 2.94,
-      "current_miss": 0,
+      "current_miss": 1,
       "max_miss": 34
      },
      {
       "number": 5,
       "count": 431,
       "percent": 2.94,
+      "current_miss": 1,
+      "max_miss": 36
+     },
+     {
+      "number": 11,
+      "count": 426,
+      "percent": 2.91,
       "current_miss": 0,
       "max_miss": 36
      },
@@ -469,174 +476,167 @@
       "number": 19,
       "count": 426,
       "percent": 2.91,
-      "current_miss": 14,
+      "current_miss": 15,
       "max_miss": 49
-     },
-     {
-      "number": 11,
-      "count": 425,
-      "percent": 2.9,
-      "current_miss": 1,
-      "max_miss": 36
      },
      {
       "number": 31,
       "count": 425,
       "percent": 2.9,
-      "current_miss": 12,
+      "current_miss": 13,
       "max_miss": 43
      },
      {
       "number": 2,
-      "count": 419,
-      "percent": 2.86,
-      "current_miss": 5,
+      "count": 420,
+      "percent": 2.87,
+      "current_miss": 0,
       "max_miss": 37
      },
      {
       "number": 25,
       "count": 415,
       "percent": 2.83,
-      "current_miss": 2,
+      "current_miss": 3,
       "max_miss": 37
      },
      {
       "number": 6,
-      "count": 412,
-      "percent": 2.81,
-      "current_miss": 8,
+      "count": 413,
+      "percent": 2.82,
+      "current_miss": 0,
       "max_miss": 41
      },
      {
-      "number": 20,
-      "count": 411,
-      "percent": 2.81,
-      "current_miss": 13,
-      "max_miss": 45
-     },
-     {
-      "number": 26,
-      "count": 411,
-      "percent": 2.81,
-      "current_miss": 1,
-      "max_miss": 46
-     },
-     {
       "number": 10,
-      "count": 410,
+      "count": 411,
       "percent": 2.8,
       "current_miss": 0,
       "max_miss": 44
      },
      {
+      "number": 20,
+      "count": 411,
+      "percent": 2.8,
+      "current_miss": 14,
+      "max_miss": 45
+     },
+     {
+      "number": 26,
+      "count": 411,
+      "percent": 2.8,
+      "current_miss": 2,
+      "max_miss": 46
+     },
+     {
       "number": 27,
       "count": 407,
       "percent": 2.78,
-      "current_miss": 3,
+      "current_miss": 4,
       "max_miss": 39
      },
      {
       "number": 23,
       "count": 405,
       "percent": 2.76,
-      "current_miss": 29,
+      "current_miss": 30,
       "max_miss": 52
      },
      {
       "number": 28,
       "count": 402,
       "percent": 2.74,
-      "current_miss": 6,
+      "current_miss": 7,
       "max_miss": 38
      },
      {
       "number": 14,
       "count": 399,
       "percent": 2.72,
-      "current_miss": 3,
+      "current_miss": 4,
       "max_miss": 38
      },
      {
       "number": 18,
       "count": 399,
       "percent": 2.72,
-      "current_miss": 11,
+      "current_miss": 12,
       "max_miss": 34
      },
      {
       "number": 9,
       "count": 397,
       "percent": 2.71,
-      "current_miss": 11,
+      "current_miss": 12,
       "max_miss": 35
      },
      {
       "number": 21,
       "count": 395,
       "percent": 2.7,
-      "current_miss": 4,
+      "current_miss": 5,
       "max_miss": 57
      },
      {
       "number": 12,
       "count": 394,
       "percent": 2.69,
-      "current_miss": 3,
+      "current_miss": 4,
       "max_miss": 46
      },
      {
       "number": 8,
       "count": 392,
-      "percent": 2.68,
-      "current_miss": 16,
+      "percent": 2.67,
+      "current_miss": 17,
       "max_miss": 45
      },
      {
       "number": 13,
       "count": 389,
-      "percent": 2.66,
-      "current_miss": 28,
+      "percent": 2.65,
+      "current_miss": 29,
       "max_miss": 49
      },
      {
       "number": 17,
       "count": 388,
       "percent": 2.65,
-      "current_miss": 1,
+      "current_miss": 2,
       "max_miss": 48
      },
      {
       "number": 4,
-      "count": 383,
-      "percent": 2.61,
-      "current_miss": 17,
+      "count": 384,
+      "percent": 2.62,
+      "current_miss": 0,
       "max_miss": 49
      },
      {
       "number": 15,
       "count": 381,
       "percent": 2.6,
-      "current_miss": 8,
+      "current_miss": 9,
       "max_miss": 52
      },
      {
       "number": 24,
       "count": 372,
       "percent": 2.54,
-      "current_miss": 2,
+      "current_miss": 3,
       "max_miss": 45
      },
      {
       "number": 16,
       "count": 358,
       "percent": 2.44,
-      "current_miss": 3,
+      "current_miss": 4,
       "max_miss": 68
      }
     ],
     "expected_percent": 2.86,
     "chi2_test": {
-     "chi2": 89.37,
+     "chi2": 89.14,
      "df": 34,
      "p_value_approx": 0.0,
      "note": "p>0.05 表示与均匀分布无显著差异(随机性正常)"
@@ -647,93 +647,93 @@
      {
       "number": 7,
       "count": 522,
-      "percent": 8.91,
-      "current_miss": 2,
+      "percent": 8.9,
+      "current_miss": 3,
       "max_miss": 28
      },
      {
       "number": 10,
-      "count": 521,
-      "percent": 8.89,
-      "current_miss": 5,
+      "count": 522,
+      "percent": 8.9,
+      "current_miss": 0,
       "max_miss": 37
      },
      {
       "number": 5,
       "count": 511,
       "percent": 8.72,
-      "current_miss": 17,
+      "current_miss": 18,
       "max_miss": 27
      },
      {
       "number": 12,
       "count": 500,
       "percent": 8.53,
-      "current_miss": 7,
+      "current_miss": 8,
       "max_miss": 30
      },
      {
       "number": 2,
       "count": 491,
       "percent": 8.38,
-      "current_miss": 9,
+      "current_miss": 10,
       "max_miss": 35
      },
      {
       "number": 9,
       "count": 489,
       "percent": 8.34,
-      "current_miss": 0,
+      "current_miss": 1,
       "max_miss": 35
      },
      {
       "number": 11,
       "count": 485,
-      "percent": 8.28,
-      "current_miss": 11,
+      "percent": 8.27,
+      "current_miss": 12,
       "max_miss": 41
      },
      {
       "number": 4,
       "count": 474,
       "percent": 8.09,
-      "current_miss": 3,
+      "current_miss": 4,
       "max_miss": 30
      },
      {
       "number": 3,
       "count": 471,
-      "percent": 8.04,
-      "current_miss": 0,
+      "percent": 8.03,
+      "current_miss": 1,
       "max_miss": 32
      },
      {
       "number": 6,
       "count": 470,
       "percent": 8.02,
-      "current_miss": 6,
+      "current_miss": 7,
       "max_miss": 34
      },
      {
       "number": 1,
-      "count": 466,
-      "percent": 7.95,
-      "current_miss": 1,
+      "count": 467,
+      "percent": 7.97,
+      "current_miss": 0,
       "max_miss": 40
      },
      {
       "number": 8,
       "count": 460,
       "percent": 7.85,
-      "current_miss": 3,
+      "current_miss": 4,
       "max_miss": 32
      }
     ],
     "expected_percent": 8.33,
     "chi2_test": {
-     "chi2": 10.26,
+     "chi2": 10.31,
      "df": 11,
-     "p_value_approx": 0.5073,
+     "p_value_approx": 0.5035,
      "note": "p>0.05 表示与均匀分布无显著差异(随机性正常)"
     }
    },
@@ -741,8 +741,8 @@
     "min": 27,
     "max": 163,
     "mean": 91.7,
-    "current": 41,
-    "current_date": "2026-09-30"
+    "current": 33,
+    "current_date": "2026-10-05"
    },
    "odd_even": {
     "avg_odd_in_front": 2.61
@@ -751,61 +751,61 @@
   "p5": {
    "name": "排列五",
    "rule": "5个号码(0-9)",
-   "total_draws": 7738,
+   "total_draws": 7739,
    "front": {
     "numbers": [
      {
       "number": 4,
       "count": 4068,
       "percent": 10.51,
-      "current_miss": 0,
+      "current_miss": 1,
       "max_miss": 15
      },
      {
       "number": 9,
-      "count": 3937,
+      "count": 3938,
       "percent": 10.18,
-      "current_miss": 2,
+      "current_miss": 0,
       "max_miss": 15
      },
      {
       "number": 8,
       "count": 3934,
       "percent": 10.17,
-      "current_miss": 2,
+      "current_miss": 3,
       "max_miss": 20
      },
      {
       "number": 3,
       "count": 3899,
       "percent": 10.08,
-      "current_miss": 1,
+      "current_miss": 2,
       "max_miss": 17
      },
      {
       "number": 2,
-      "count": 3893,
+      "count": 3894,
       "percent": 10.06,
       "current_miss": 0,
       "max_miss": 17
      },
      {
       "number": 5,
-      "count": 3836,
-      "percent": 9.91,
-      "current_miss": 2,
+      "count": 3837,
+      "percent": 9.92,
+      "current_miss": 0,
       "max_miss": 15
      },
      {
       "number": 6,
       "count": 3811,
       "percent": 9.85,
-      "current_miss": 7,
+      "current_miss": 8,
       "max_miss": 15
      },
      {
       "number": 1,
-      "count": 3795,
+      "count": 3796,
       "percent": 9.81,
       "current_miss": 0,
       "max_miss": 13
@@ -814,22 +814,22 @@
       "number": 7,
       "count": 3775,
       "percent": 9.76,
-      "current_miss": 0,
+      "current_miss": 1,
       "max_miss": 20
      },
      {
       "number": 0,
-      "count": 3742,
+      "count": 3743,
       "percent": 9.67,
-      "current_miss": 1,
+      "current_miss": 0,
       "max_miss": 16
      }
     ],
     "expected_percent": 10.0,
     "chi2_test": {
-     "chi2": 21.92,
+     "chi2": 21.85,
      "df": 9,
-     "p_value_approx": 0.0092,
+     "p_value_approx": 0.0095,
      "note": "p>0.05 表示与均匀分布无显著差异(随机性正常)"
     }
    },
@@ -837,8 +837,8 @@
     "min": 2,
     "max": 44,
     "mean": 22.6,
-    "current": 15,
-    "current_date": "2026-09-30"
+    "current": 17,
+    "current_date": "2026-10-05"
    },
    "odd_even": {
     "avg_odd_in_front": 2.49
