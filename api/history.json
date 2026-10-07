@@ -1,6 +1,6 @@
 {
  "_readme": "中国彩票开奖数据API。latest=每彩种最新一期; recent=每彩种最新10期(新→旧)。单彩种30期: api/ssq.json, api/dlt.json, api/p5.json; 预计算统计(频率/遗漏/卡方): api/stats.json; 按年切片历史: api/history.json; 全部历史: data/{ssq,dlt,p5}_all.json (字段: i=期号,d=日期,n=号码,pool=奖池,sales=销售额,p1c/p1a/p2c/p2a=奖级注数与奖金)。",
- "_updated": "2026-10-06 19:17",
+ "_updated": "2026-10-07 19:44",
  "games": {
   "ssq": {
    "name": "双色球",
