@@ -1,6 +1,6 @@
 {
  "_readme": "中国彩票开奖数据API。latest=每彩种最新一期; recent=每彩种最新10期(新→旧)。单彩种30期: api/ssq.json, api/dlt.json, api/p5.json; 预计算统计(频率/遗漏/卡方): api/stats.json; 按年切片历史: api/history.json; 全部历史: data/{ssq,dlt,p5}_all.json (字段: i=期号,d=日期,n=号码,pool=奖池,sales=销售额,p1c/p1a/p2c/p2a=奖级注数与奖金)。",
- "_updated": "2026-10-08 19:41",
+ "_updated": "2026-10-09 19:14",
  "games": {
   "ssq": {
    "name": "双色球",
@@ -751,54 +751,54 @@
   "p5": {
    "name": "排列五",
    "rule": "5个号码(0-9)",
-   "total_draws": 7742,
+   "total_draws": 7743,
    "front": {
     "numbers": [
      {
       "number": 4,
       "count": 4069,
       "percent": 10.51,
-      "current_miss": 2,
+      "current_miss": 3,
       "max_miss": 15
      },
      {
       "number": 9,
       "count": 3939,
-      "percent": 10.18,
-      "current_miss": 2,
+      "percent": 10.17,
+      "current_miss": 3,
       "max_miss": 15
      },
      {
       "number": 8,
       "count": 3934,
       "percent": 10.16,
-      "current_miss": 6,
+      "current_miss": 7,
       "max_miss": 20
      },
      {
       "number": 3,
-      "count": 3899,
+      "count": 3900,
       "percent": 10.07,
-      "current_miss": 5,
+      "current_miss": 0,
       "max_miss": 17
      },
      {
       "number": 2,
       "count": 3898,
       "percent": 10.07,
-      "current_miss": 0,
+      "current_miss": 1,
       "max_miss": 17
      },
      {
       "number": 5,
       "count": 3838,
       "percent": 9.91,
-      "current_miss": 2,
+      "current_miss": 3,
       "max_miss": 15
      },
      {
       "number": 6,
-      "count": 3813,
+      "count": 3814,
       "percent": 9.85,
       "current_miss": 0,
       "max_miss": 15
@@ -807,29 +807,29 @@
       "number": 1,
       "count": 3800,
       "percent": 9.82,
-      "current_miss": 0,
+      "current_miss": 1,
       "max_miss": 13
      },
      {
       "number": 7,
-      "count": 3777,
+      "count": 3778,
       "percent": 9.76,
-      "current_miss": 1,
+      "current_miss": 0,
       "max_miss": 20
      },
      {
       "number": 0,
-      "count": 3743,
+      "count": 3745,
       "percent": 9.67,
-      "current_miss": 3,
+      "current_miss": 0,
       "max_miss": 16
      }
     ],
     "expected_percent": 10.0,
     "chi2_test": {
-     "chi2": 21.71,
+     "chi2": 21.51,
      "df": 9,
-     "p_value_approx": 0.01,
+     "p_value_approx": 0.0107,
      "note": "p>0.05 表示与均匀分布无显著差异(随机性正常)"
     }
    },
@@ -837,8 +837,8 @@
     "min": 2,
     "max": 44,
     "mean": 22.6,
-    "current": 12,
-    "current_date": "2026-10-08"
+    "current": 16,
+    "current_date": "2026-10-09"
    },
    "odd_even": {
     "avg_odd_in_front": 2.49
